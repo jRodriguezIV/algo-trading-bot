@@ -1,0 +1,27 @@
+# .gitignore
+
+# Conda and Python cache
+__pycache__/
+*.py[cod]
+*.ipynb_checkpoints
+*.log
+
+# Conda env
+.env/
+*.env
+*.yaml
+*.yml
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints/
+
+# VSCode settings
+.vscode/
+
+# Data files
+*.csv
+*.hdf5
+*.pkl
+
+# API keys or sensitive files
+secrets.json
