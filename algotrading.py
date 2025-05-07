@@ -18,7 +18,8 @@ start_date = pd.to_datetime(end_date) - pd.DateOffset(years=8)
 
 df = yf.download(tickers = 'SPY',
                 start = start_date,
-                end = end_date)
+                end = end_date,
+                timeout= 5.0)
                 # .stack(future_stack=True)
 df.columns = df.columns.get_level_values(0) 
 # print(df.columns.tolist())
