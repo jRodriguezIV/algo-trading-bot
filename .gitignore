@@ -10,7 +10,6 @@ __pycache__/
 .env/
 *.env
 *.yaml
-*.yml
 
 # Jupyter notebooks checkpoints
 .ipynb_checkpoints/
