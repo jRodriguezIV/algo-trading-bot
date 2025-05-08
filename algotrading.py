@@ -8,7 +8,7 @@ from statsmodels.regression.rolling import RollingOLS
 import matplotlib.pyplot as plt
 
 
-
+# Code block to introduce all stocks under the S&P 500 index
 # sp500 = pd.read_html('https://en.wikipedia.org/wiki/List_of_S%26P_500_companies')[0]
 # sp500['Symbol'] = sp500['Symbol'].str.replace('.','-')
 # symbols_list = sp500['Symbol'].unique().tolist()
@@ -25,7 +25,6 @@ df = yf.download(tickers = 'SPY',
                 timeout= 5.0)
                 # .stack(future_stack=True)
 df.columns = df.columns.get_level_values(0) 
-# print(df.columns.tolist())
 
 df.columns = df.columns.str.lower()
 
@@ -33,7 +32,7 @@ df['garman_klass_vol'] = ((np.log(df['high'])-np.log(df['low']))**2)/2-(2*np.log
 
 df['rsi'] = pandas_ta.rsi(df['close'], length=20)
 
-# Chest RSI for AAPL to see if it works
+# Check RSI plot
 # df.xs('SPY', level=1)['rsi'].plot(title='SPY RSI', figsize=(10, 5), color='blue') 
 
 df['bb_low'] = df['close'].transform(lambda x:pandas_ta.bbands(close=np.log1p(x), length=20).iloc[:, 0])
@@ -64,11 +63,10 @@ adjusted_volume = df['dollar_volume'].resample('ME').mean().to_frame('dollar_vol
 df_monthly = df[last_cols].resample('ME').last()
 
 data = (pd.concat([adjusted_volume, df_monthly], axis=1)).dropna()
-data['dollar_volume'] = data['dollar_volume'].rolling(5*12).mean().dropna()
+data['dollar_volume'] = data.loc[:, 'dollar_volume'].rolling(5*12, min_periods=12).mean().dropna()
 data['dollar_vol_rank'] = (data['dollar_volume'].rank(ascending=False)).dropna()
-data = data[data['dollar_vol_rank']<25].drop(['dollar_volume', 'dollar_vol_rank'], axis=1)
+data = data.drop(['dollar_volume', 'dollar_vol_rank'], axis=1)
 
-''
 def calculate_returns(df):
     outlier_cutoff = 0.005
     lags = [1, 2, 3, 6, 9, 12]
@@ -84,7 +82,6 @@ def calculate_returns(df):
     return df
 
 data = calculate_returns(data).dropna()
-data
 
 factor_data = web.DataReader('F-F_Research_data_5_factors_2x3',
                'famafrench',
@@ -99,20 +96,6 @@ exog = sm.add_constant(factor_data.drop(columns='return_1m',axis=1))
 rolling_ols = RollingOLS(endog=endog, exog=exog, window=min(24,factor_data.shape[0]), min_nobs=len(factor_data.columns)+1)
 rolling_betas = rolling_ols.fit(params_only=True).params.drop(columns='const', axis =1)
 rolling_betas
-print(len(factor_data.columns)+1)
-factor_data
-
-
-# factor_data.apply(lambda x: RollingOLS(endog = x['return_1m'],
-#                                        exog=sm.add_constant(x.drop('return_1m', axis=1)),
-#                                        window=min(24,x.shape[0]),
-#                                        min_nobs=len(x.columns)+1).fit(params_only=True).params.drop('const',axis=1))
-# print(factor_data['return_1m'])
-
-# valid_stocks = observations[observations >= 10 ]
-# factor_data = factor_data[factor_data.index.get_level_values('ticker')]
-
-
 
 # print(df)
 # print(type(df.index))       # Shows the index type
