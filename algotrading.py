@@ -3,6 +3,9 @@ import pandas as pd
 import pandas_ta
 import numpy as np  
 import yfinance as yf
+import statsmodels.api as sm
+from statsmodels.regression.rolling import RollingOLS
+import matplotlib.pyplot as plt
 
 
 
@@ -83,9 +86,31 @@ def calculate_returns(df):
 data = calculate_returns(data).dropna()
 data
 
-web.DataReader('F-F_Research_data_5_factors_2x3',
+factor_data = web.DataReader('F-F_Research_data_5_factors_2x3',
                'famafrench',
-               start='2010')
+               start='2010')[0].drop('RF', axis=1)
+factor_data.index = factor_data.index.to_timestamp()
+factor_data = factor_data.resample('M').last().div(100)
+factor_data.index.name = 'date'
+factor_data = factor_data.join(data['return_1m'])
+
+endog = factor_data['return_1m']
+exog = sm.add_constant(factor_data.drop(columns='return_1m',axis=1))
+rolling_ols = RollingOLS(endog=endog, exog=exog, window=min(24,factor_data.shape[0]), min_nobs=len(factor_data.columns)+1)
+rolling_betas = rolling_ols.fit(params_only=True).params.drop(columns='const', axis =1)
+rolling_betas
+print(len(factor_data.columns)+1)
+factor_data
+
+
+# factor_data.apply(lambda x: RollingOLS(endog = x['return_1m'],
+#                                        exog=sm.add_constant(x.drop('return_1m', axis=1)),
+#                                        window=min(24,x.shape[0]),
+#                                        min_nobs=len(x.columns)+1).fit(params_only=True).params.drop('const',axis=1))
+# print(factor_data['return_1m'])
+
+# valid_stocks = observations[observations >= 10 ]
+# factor_data = factor_data[factor_data.index.get_level_values('ticker')]
 
 
 
