@@ -95,7 +95,13 @@ endog = factor_data['return_1m']
 exog = sm.add_constant(factor_data.drop(columns='return_1m',axis=1))
 rolling_ols = RollingOLS(endog=endog, exog=exog, window=min(24,factor_data.shape[0]), min_nobs=len(factor_data.columns)+1)
 rolling_betas = rolling_ols.fit(params_only=True).params.drop(columns='const', axis =1)
-rolling_betas
+# rolling_betas
+factors = ['Mkt-RF', 'SMB', 'HML', 'RMW', 'CMA']
+data = data.join(rolling_betas)
+data.loc[:, factors] = data[factors].apply(lambda x: x.fillna(x.mean()))
+data
+
+
 
 # print(df)
 # print(type(df.index))       # Shows the index type
