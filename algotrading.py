@@ -6,7 +6,11 @@ import yfinance as yf
 import statsmodels.api as sm
 from statsmodels.regression.rolling import RollingOLS
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mtick
 from sklearn.cluster import KMeans
+from pypfopt.efficient_frontier import EfficientFrontier
+from pypfopt import risk_models, expected_returns, BlackLittermanModel
+
 
 
 # Code block to introduce all stocks under the S&P 500 index
@@ -73,6 +77,14 @@ def get_clusters(data, initial_centroids):
                           random_state=0,
                           init=initial_centroids).fit(data).labels_
     return data
+
+def optimize_weights(prices, lower_bound=0):
+    returns = expected_returns.mean_historical_return(prices, frequency=252)
+    cov = risk_models.sample_cov(prices, frequency=252)
+    
+    ef = EfficientFrontier(returns, cov, weight_bounds=(lower_bound, 0.1), solver='SCS')
+    ef.max_sharpe()
+    return ef.clean_weights()
 
 
 end_date = '2025-05-01'
@@ -145,8 +157,53 @@ data = get_clusters(data.dropna(), initial_centroids)
 plt.style.use('ggplot')
 plot_clusters(data)
 
+filtered_df = data[data['cluster'] == 1].copy()
+filtered_df = filtered_df.reset_index() 
+filtered_df['Date'] = pd.to_datetime(filtered_df['Date'])
+filtered_df['Date'] = filtered_df['Date'] + pd.DateOffset(1)
 
+# 1) Download full daily SPY data
+new_df = yf.download('SPY', start=start_date, end=end_date)
+if isinstance(new_df.columns, pd.MultiIndex):
+    new_df.columns = new_df.columns.droplevel('Ticker')
 
+# 2) Build monthly close series at month-start
+monthly_close = new_df['Close'].resample('MS').first()\
+                 .rename('Close')
+
+# 3) Make sure filtered_df.Date is datetime, then set it as index
+filtered_df['Date'] = pd.to_datetime(filtered_df['Date'])
+filtered_df = filtered_df.set_index('Date')
+
+# 4) Join on that Date-index
+filtered_df = filtered_df.join(monthly_close, how='left')
+
+# 5) Calculate the log returns for SPY
+spy_ret = np.log(filtered_df[['Close']]).diff().dropna().rename({'Close':'Spy Buy&Hold'}, axis=1)
+
+plt.style.use('ggplot')
+spy_ret = np.exp(np.log1p(spy_ret).cumsum())-1
+spy_ret[:'2025-04-29'].plot(figsize=(16,6))
+plt.title('Clustered Spy Returns Over Time')
+plt.gca().yaxis.set_major_formatter(mtick.PercentFormatter(1))
+plt.ylabel('Return')
+plt.show()
+
+# dates = filtered_df['Date'].unique().tolist()
+# dates = [d.strftime('%Y-%m-%d') for d in dates]
+# dates
+
+# new_df = yf.download(tickers='SPY',
+#                     start=data.index[0]-pd.DateOffset(months=12),
+#                     end=data.index[-1])
+# new_df.columns = new_df.columns.droplevel('Ticker')
+# new_df
+
+# for start_date in dates:
+#     end_date = (pd.to_datetime(start_date)+pd.offsets.MonthEnd(0)).strftime('%Y-%m-%d')
+#     # cols = fixed_dates[start_date]
+#     optimization_start_date = (pd.to_datetime(start_date)-pd.DateOffset(months=12)).strftime('%Y-%m-%d')
+#     optimization_end_date = (pd.to_datetime(start_date)-pd.DateOffset(days=1)).strftime('%Y-%m-%d')
 
 
 # print(df)
