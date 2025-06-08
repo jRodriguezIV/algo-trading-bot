@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.ticker as mtick
 import datetime as dt
 import yfinance as yf
 import os
@@ -47,4 +48,16 @@ for start_date in fixed_dates.keys():
     cols = fixed_dates[start_date]
     temp_df = returns_df[start_date:end_date][cols].mean(axis=1).to_frame('portfolio_return')
     portfolio_df = pd.concat([portfolio_df, temp_df], axis=0)
-portfolio_df
+# portfolio_df
+
+portfolios_cumulative_return = np.exp(np.log1p(portfolio_df).cumsum()).sub(1)
+
+portfolios_cumulative_return.plot(figsize=(16,6))
+
+plt.title('Twitter Engagement Ratio Strategy Return Over Time')
+
+plt.gca().yaxis.set_major_formatter(mtick.PercentFormatter(1))
+
+plt.ylabel('Return')
+
+plt.show()
