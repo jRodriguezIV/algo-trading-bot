@@ -24,6 +24,8 @@ aggregated_df['rank'] = (aggregated_df.groupby(level=0)['engagement_ratio']
 filtered_df = aggregated_df[aggregated_df['rank']<6].copy()
 filtered_df = filtered_df.reset_index(level=1)
 filtered_df.index = filtered_df.index+pd.DateOffset(1)
+filtered_df = filtered_df.reset_index().set_index(['date', 'symbol'])
+filtered_df = filtered_df.drop(['MRO'], level='symbol')
 # filtered_df
 
 dates = filtered_df.index.get_level_values('date').unique().tolist()
@@ -31,5 +33,18 @@ fixed_dates = {}
 
 for d in dates:
     fixed_dates[d.strftime('%Y-%m-%d')] = filtered_df.xs(d, level=0).index.tolist()
-    
-fixed_dates
+# fixed_dates
+
+stocks_list = sentiment_df.index.get_level_values('symbol').unique().tolist()
+prices_df = yf.download(tickers=stocks_list, start='2021-01-01', end='2023-03-01')
+prices_df = prices_df.drop(columns=['ATVI', 'MRO'], level='Ticker')
+# prices_df
+
+returns_df = np.log(prices_df['Close']).diff().dropna()
+portfolio_df = pd.DataFrame()
+for start_date in fixed_dates.keys():
+    end_date = (pd.to_datetime(start_date)+pd.offsets.MonthEnd()).strftime('%Y-%m-%d')
+    cols = fixed_dates[start_date]
+    temp_df = returns_df[start_date:end_date][cols].mean(axis=1).to_frame('portfolio_return')
+    portfolio_df = pd.concat([portfolio_df, temp_df], axis=0)
+portfolio_df
