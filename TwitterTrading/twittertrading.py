@@ -49,6 +49,17 @@ for start_date in fixed_dates.keys():
     temp_df = returns_df[start_date:end_date][cols].mean(axis=1).to_frame('portfolio_return')
     portfolio_df = pd.concat([portfolio_df, temp_df], axis=0)
 # portfolio_df
+qqq_df= yf.download(tickers='QQQ',
+                   start='2021-01-01',
+                   end='2023-03-01')
+
+qqq_ret = np.log(qqq_df['Close']).diff()
+
+portfolio_df = portfolio_df.merge(qqq_ret,
+                                 left_index=True,
+                                 right_index=True)
+portfolio_df = portfolio_df.rename(columns={'QQQ':'nasdaq_return'})
+# portfolio_df
 
 portfolios_cumulative_return = np.exp(np.log1p(portfolio_df).cumsum()).sub(1)
 
