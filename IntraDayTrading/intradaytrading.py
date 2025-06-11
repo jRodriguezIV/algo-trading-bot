@@ -16,7 +16,9 @@ daily_df['log_ret'] = np.log(daily_df['Adj Close']).diff()
 # daily_df 
 
 intraday_5min_df = pd.read_csv(os.path.join(data_folder, 'simulated_5min_data.csv'))
+intraday_5min_df = intraday_5min_df.loc[:, ~intraday_5min_df.columns.str.contains('^Unnamed')]
 intraday_5min_df['datetime'] = pd.to_datetime(intraday_5min_df['datetime'])
+intraday_5min_df['date'] = intraday_5min_df['datetime'].dt.date
 intraday_5min_df = intraday_5min_df.set_index('datetime')
-intraday_5min_df['date'] = intraday_5min_df.index.strftime('%Y-%m-%d')
 # intraday_5min_df
+
